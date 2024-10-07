@@ -1,0 +1,69 @@
+workload=site.ycsb.workloads.CoreWorkload
+
+# There is no default setting for recordcount but it is
+# required to be set.
+# The number of records in the table to be inserted in
+# the load phase or the number of records already in the
+# table before the run phase.
+recordcount=40000000
+
+# There is no default setting for operationcount but it is
+# required to be set.
+# The number of operations to use during the run phase.
+operationcount=61666666
+
+# The number of insertions to do, if different from recordcount.
+# Used with insertstart to grow an existing table.
+#insertcount=
+
+# The size of each field (in bytes)
+fieldlength=100
+
+# The number of fields in a record
+fieldcount=10
+
+# Should read all fields
+# readallfields=true
+
+# Should write all fields on update
+# writeallfields=false
+
+insertproportion=1.00
+readproportion=0.00
+
+updateproportion=0.00
+scanproportion=0.00
+#readmodifywriteproportion=0.05
+
+# Quote from original YCSB paper:
+# "Choose an item according to the Zipfian dis-
+# tribution. For example, when choosing a record, some
+# records will be extremely popular (the head of the distri-
+# bution) while most records will be unpopular (the tail).""
+requestdistribution=zipfian
+
+# Percentage of data items that constitute the hot set
+hotspotdatafraction=0.2
+
+# Percentage of operations that access the hot set
+hotspotopnfraction=0.8
+
+# The range of latencies to track in the histogram (milliseconds)
+histogram.buckets=1000
+
+# Insertion error retry for the core workload.
+#
+# By default, the YCSB core workload does not retry any operations.
+# However, during the load process, if any insertion fails, the entire
+# load process is terminated.
+# If a user desires to have more robust behavior during this phase, they can
+# enable retry for insertion by setting the following property to a positive
+# number.
+# core_workload_insertion_retry_limit = 0
+#
+# the following number controls the interval between retries (in seconds):
+# core_workload_insertion_retry_interval = 3
+
+measurementtype=hdrhistogram
+hdrhistogram.fileoutput=true
+hdrhistogram.percentiles=50,90,95,99,99.9,99.99,99.999,100
