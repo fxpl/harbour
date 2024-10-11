@@ -1,7 +1,7 @@
 workload:
-  ycsb_path: ./bundles/ycsb-0.17.0/workloads/
+  ycsb_workload_path: ./bundles/ycsb-0.17.0/workloads/
   ycsb_workload: workload_writeintense
-  ycsb_target: '12000'
+  # ycsb_target: '12000'
   ycsb_threads: '32'
   ycsb_hosts: '127.0.0.1'
   ycsb_cassandra_username: cassandra

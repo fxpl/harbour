@@ -14,11 +14,8 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.io.InputStream;
-import java.util.Map;
 
 
 import net.sourceforge.argparse4j.ArgumentParsers;
@@ -58,7 +55,7 @@ public class Yacht {
     public void loadClasses() throws RuntimeException, Exception {
         ArrayList<URL> jarUrlsList = new ArrayList<>();
         for (String path : JARS_TO_LOAD) {
-            for (File file : new File(path).listFiles((dir, name) -> name.endsWith(".jar"))) {
+            for (File file : Objects.requireNonNull(new File(path).listFiles((dir, name) -> name.endsWith(".jar")))) {
                 jarUrlsList.add(file.toURI().toURL());
             }
         }
@@ -99,16 +96,22 @@ public class Yacht {
 
         System.out.println("Cassandra service started.");
         yacht.prepareYCSBArgs();
-        // yacht.prepareYCSBCQL();
+        //yacht.prepareYCSBCQL();
 
         if (ns.getBoolean("multi")) {
             System.out.println("should invoke ycsb in new process...");
             // int exitCode = yacht.runYcsbNative("/usr/bin/time --verbose bash ./bundles/ycsb-0.17.0/bin/ycsb.sh run cassandra-cql " + System.getenv("YCSB_ARGS"));
             // System.out.println("YCSB process exited with code: " + exitCode);
         } else {
-            yacht.clsYCSBClient = loader.loadClass("site.ycsb.Client");
-            yacht.mtdYCSBClientMain = yacht.clsYCSBClient.getMethod("main", String[].class);
-            yacht.mtdYCSBClientMain.invoke(null, (Object) yacht.ycsbWorkloadArgs);
+            System.out.println(Arrays.toString(yacht.ycsbWorkloadArgs));
+            try {
+                yacht.clsYCSBClient = loader.loadClass("site.ycsb.Client");
+                yacht.mtdYCSBClientMain = yacht.clsYCSBClient.getMethod("main", String[].class);
+                yacht.mtdYCSBClientMain.invoke(null, (Object) yacht.ycsbWorkloadArgs);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
         }
 
         System.exit(0);
@@ -154,12 +157,12 @@ public class Yacht {
                     + "field9 varchar);");
             close.invoke(sess);
         } catch (Exception e) {
-           //e.printStackTrace();
+           e.printStackTrace();
         }
     }
 
     private void prepareYCSBArgs() {
-        String envArgs = System.getenv("YCSB_ARGS");
+        String envArgs = "-s -P ./bundles/ycsb-0.17.0/workloads/workload_writeintense -p hosts=127.0.0.1";//System.getenv("YCSB_ARGS");
         ArrayList<String> baseArgs = new ArrayList<>();
         if (envArgs != null && !envArgs.trim().isEmpty()) {
             baseArgs.addAll(Arrays.asList(envArgs.split(" ")));
