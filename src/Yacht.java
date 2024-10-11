@@ -9,6 +9,7 @@
  *    http://www.opensource.org/licenses/apache2.0.php
  */
 import java.io.File;
+import java.io.FileInputStream;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -16,6 +17,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.io.InputStream;
+import java.util.Map;
+
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -23,16 +27,10 @@ import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
 public class Yacht {
-    public native int runYcsbNative(String cmd);
-
-    static {
-        System.loadLibrary("run_ycsb");
-    }
     static private URLClassLoader loader;
     private File dirCassandraConf;
     private File dirCassandraStorage;
     private File dirCassandraLog;
-    private File dirYCSBWorkloads;
     private File ymlConf;
     private File xmlLogback;
     private Class<?> clsYCSBClient;
@@ -49,7 +47,6 @@ public class Yacht {
 
     public Yacht() throws RuntimeException, Exception {
         dirCassandraConf = new File(Paths.get(PACKAGE_PATH, CASSANDRA_PATH).toString(), "conf");
-        dirYCSBWorkloads = new File(Paths.get(PACKAGE_PATH, YCSB_PATH).toString(), "/workloads");
         ymlConf = new File(dirCassandraConf, "cassandra.yaml");
         xmlLogback = new File(dirCassandraConf, "logback.xml");
 
@@ -103,9 +100,11 @@ public class Yacht {
         System.out.println("Cassandra service started.");
         yacht.prepareYCSBArgs();
         // yacht.prepareYCSBCQL();
+
         if (ns.getBoolean("multi")) {
-            int exitCode = yacht.runYcsbNative("/usr/bin/time --verbose bash ./bundles/ycsb-0.17.0/bin/ycsb.sh run cassandra-cql " + System.getenv("YCSB_ARGS"));
-            System.out.println("YCSB process exited with code: " + exitCode);
+            System.out.println("should invoke ycsb in new process...");
+            // int exitCode = yacht.runYcsbNative("/usr/bin/time --verbose bash ./bundles/ycsb-0.17.0/bin/ycsb.sh run cassandra-cql " + System.getenv("YCSB_ARGS"));
+            // System.out.println("YCSB process exited with code: " + exitCode);
         } else {
             yacht.clsYCSBClient = loader.loadClass("site.ycsb.Client");
             yacht.mtdYCSBClientMain = yacht.clsYCSBClient.getMethod("main", String[].class);
@@ -175,8 +174,6 @@ public class Yacht {
     private void setupScratch() {
         dirCassandraStorage = new File(PACKAGE_PATH +"/../db", "cassandra-storage");
         dirCassandraLog = new File(PACKAGE_PATH + "/../db", "cassandra-log");
-        // dirCassandraStorage.mkdir();
-        // dirCassandraLog.mkdir();
     }
 
     private void setupCassandra() {
