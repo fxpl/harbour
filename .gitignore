@@ -1,4 +1,5 @@
 db_pre_inited/
+db/
 bundles/apache-cassandra-5.0.1/logs/
 *.class
 *.so
