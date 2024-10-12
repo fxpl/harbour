@@ -1,4 +1,5 @@
-/* Parts of this code comes from DaCapo whose license requires
+/* Parts of this code for loading Cassandra/YCSB
+ * comes from DaCapo whose license requires
  * copyright and license notices to be presereved.
  *
  * Copyright (c) 2009-2020 The Australian National University.
@@ -17,6 +18,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.io.InputStream;
 
+import static java.util.Map.entry;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -52,10 +54,28 @@ public class Yacht {
         loadClasses();
     }
 
+    static void invoke(String bash, Map<String, String> environment) {
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", bash);
+            if (environment != null) {
+                Map<String, String> processEnvironment = processBuilder.environment();
+                environment.forEach(processEnvironment::put);
+            }
+            processBuilder.inheritIO();
+            processBuilder.start().waitFor();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void loadClasses() throws RuntimeException, Exception {
         ArrayList<URL> jarUrlsList = new ArrayList<>();
         for (String path : JARS_TO_LOAD) {
             for (File file : Objects.requireNonNull(new File(path).listFiles((dir, name) -> name.endsWith(".jar")))) {
+                if (file.getName().contains("slf4j-simple-1.7.25.jar")) {
+                    // Skip to avoid conflict since both cassandra and ycsb have an implementation
+                    continue;
+                }
                 jarUrlsList.add(file.toURI().toURL());
             }
         }
@@ -70,11 +90,15 @@ public class Yacht {
 
     public static void main(String[] args) throws RuntimeException, Exception {
         ArgumentParser parser = ArgumentParsers.newFor("Yacht").build()
-                .defaultHelp(true)
-                .description("Run Cassandra and YCSB");
+            .defaultHelp(true)
+            .description("Run Cassandra and YCSB");
         parser.addArgument("--multi")
-                .action(net.sourceforge.argparse4j.impl.Arguments.storeTrue())
-                .help("Run multi-JVM");
+            .action(net.sourceforge.argparse4j.impl.Arguments.storeTrue())
+            .help("Run multi-JVM");
+        parser.addArgument("--init")
+            .setDefault(false)
+            .action(net.sourceforge.argparse4j.impl.Arguments.storeTrue())
+            .help("Run multi-JVM");
 
         Namespace ns = null;
         try {
@@ -96,22 +120,27 @@ public class Yacht {
 
         System.out.println("Cassandra service started.");
         yacht.prepareYCSBArgs();
-        //yacht.prepareYCSBCQL();
 
-        if (ns.getBoolean("multi")) {
-            System.out.println("should invoke ycsb in new process...");
-            // int exitCode = yacht.runYcsbNative("/usr/bin/time --verbose bash ./bundles/ycsb-0.17.0/bin/ycsb.sh run cassandra-cql " + System.getenv("YCSB_ARGS"));
-            // System.out.println("YCSB process exited with code: " + exitCode);
-        } else {
-            System.out.println(Arrays.toString(yacht.ycsbWorkloadArgs));
+        if (!ns.getBoolean("multi") || ns.getBoolean("init")) {
             try {
                 yacht.clsYCSBClient = loader.loadClass("site.ycsb.Client");
                 yacht.mtdYCSBClientMain = yacht.clsYCSBClient.getMethod("main", String[].class);
+                if (ns.getBoolean("init")) {
+                    yacht.prepareYCSBCQL();
+                    yacht.ycsbWorkloadArgs[yacht.ycsbWorkloadArgs.length - 1] = "-load";
+                }
                 yacht.mtdYCSBClientMain.invoke(null, (Object) yacht.ycsbWorkloadArgs);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
+        } else if (ns.getBoolean("multi")) {
+            String YCSB_BASE_INVOKE = System.getenv("YCSB_BASE_INVOKE");
+            String YCSB_ARGS = System.getenv("YCSB_ARGS");
+            invoke(String.join(" ", YCSB_BASE_INVOKE, "run",
+                "cassandra-cql", YCSB_ARGS), Map.ofEntries(
+                entry("JAVA_HOME", System.getenv("YCSB_JAVA_HOME")),
+                entry("JAVA_OPTS", System.getenv("YCSB_JAVA_OPTS") + " -Dorg.slf4j.simpleLogger.defaultLogLevel=OFF")
+            ));
         }
 
         System.exit(0);
@@ -162,14 +191,14 @@ public class Yacht {
     }
 
     private void prepareYCSBArgs() {
-        String envArgs = "-s -P ./bundles/ycsb-0.17.0/workloads/workload_writeintense -p hosts=127.0.0.1";//System.getenv("YCSB_ARGS");
+        String envArgs = System.getenv("YCSB_ARGS");
         ArrayList<String> baseArgs = new ArrayList<>();
         if (envArgs != null && !envArgs.trim().isEmpty()) {
             baseArgs.addAll(Arrays.asList(envArgs.split(" ")));
         }
-        baseArgs.add(baseArgs.size(), "-t"); // same as run
         baseArgs.add(baseArgs.size(), "-db");
         baseArgs.add(baseArgs.size(), "site.ycsb.db.CassandraCQLClient");
+        baseArgs.add(baseArgs.size(), "-t"); // same as run
 
         ycsbWorkloadArgs = baseArgs.toArray(new String[0]);
     }
@@ -189,7 +218,8 @@ public class Yacht {
             System.setProperty("logback.configurationFile", xmlLogback.toString());
             System.setProperty("cassandra-foreground", "yes");
             System.setProperty("java.security.manager", "allow");
-            System.getProperties().forEach((k, v) -> System.out.println(k + "=" + v));
+
+            // System.getProperties().forEach((k, v) -> System.out.println(k + "=" + v));
         } catch (Exception e) {
             System.err.println("Exception during initialization: " + e.toString());
         }
