@@ -33,6 +33,7 @@ enum Type {
 
 public class Boot {
     final static private Yaml yaml = new Yaml();
+    static private boolean dry = false;
     final static private String classpath = "-cp classes:lib/argparse4j-0.9.0.jar";
 
     @SuppressWarnings("unchecked")
@@ -56,6 +57,7 @@ public class Boot {
     }
 
     static void invoke(String bash, Map<String, String> environment) {
+        if (dry) return;
         try {
             ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", bash);
             Map<String, String> processEnvironment = processBuilder.environment();
@@ -79,18 +81,26 @@ public class Boot {
 
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("Boot").build()
-                .defaultHelp(true)
-                .description("Boot Cassandra and YCSB");
+            .defaultHelp(true)
+            .description("Boot Cassandra and YCSB");
         parser.addArgument("--config")
-                .required(true)
-                .help("System configuration");
+            .required(true)
+            .help("System configuration");
         parser.addArgument("--workload")
-                .required(true)
-                .help("Workload to run");
+            .required(true)
+            .help("Workload to run");
         parser.addArgument("--debug")
-                .setDefault(false)
-                .action(Arguments.storeTrue())
-                .help("Don't send stderr/stdout to file on invoke");
+            .setDefault(false)
+            .action(Arguments.storeTrue())
+            .help("Don't send stderr/stdout to file on invoke");
+        parser.addArgument("--dry")
+            .setDefault(false)
+            .action(Arguments.storeTrue())
+            .help("Dry run");
+        parser.addArgument("--operationcount")
+            .help("Override operationcount");
+        parser.addArgument("--target")
+            .help("Override target");
 
         Namespace ns = null;
         try {
@@ -99,6 +109,7 @@ public class Boot {
             parser.handleError(e);
             System.exit(1);
         }
+        dry = ns.getBoolean("dry");
 
         Map<String, String> config = getMap(ns.getString("config"), "harbour");
         Type type = parseType(config.get("type"));
@@ -122,7 +133,7 @@ public class Boot {
         Map<String, String> workload = getMap(ns.getString("workload"), "workload");
         String ycsb_workload_path = workload.get("ycsb_workload_path");
         String ycsb_workload = workload.get("ycsb_workload");
-        String ycsb_target = workload.get("ycsb_target");
+        String ycsb_target = ns.getString("target") != null ? ns.getString("target") : workload.get("ycsb_target");
         String ycsb_threads = workload.get("ycsb_threads");
         String ycsb_hosts = workload.get("ycsb_hosts");
         String ycsb_cassandra_username = workload.get("ycsb_cassandra_username");
@@ -154,6 +165,10 @@ public class Boot {
         YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p", "hdrhistogram.output.path="+logFull+".hdr");
         String YCSB_JAVA_OPTS = String.join(" ", ycsb_gc_options, "-Xms"+ycsb_gc_heap, "-Xmx"+ycsb_gc_heap, ycsb_gc_log_str, ycsb_vm_options);
 
+        if (ns.getString("operationcount") != null) {
+            YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p operationcount=" + ns.getString("operationcount"));
+        }
+
         if (ycsb_target != null) {
             YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p", "measurement.interval=both", "-target", ycsb_target);
         } else {
@@ -164,7 +179,7 @@ public class Boot {
             entry("YCSB_BASE_INVOKE", YCSB_BASE_INVOKE),
             entry("YCSB_JAVA_HOME", ycsb_java),
             entry("YCSB_JAVA_OPTS", YCSB_JAVA_OPTS),
-            entry("YCSB_ARGS", "-p operationcount=10000 " + YCSB_ARGS)
+            entry("YCSB_ARGS", YCSB_ARGS)
         ));
 
         String yachtInvoke = String.join(" ", wrapper, cassandra_java,
@@ -200,6 +215,7 @@ public class Boot {
         if (!ns.getBoolean("debug")) {
             yachtInvoke = yachtInvoke +  "&> " + logFull+".log";
         }
+
         invoke(yachtInvoke, environment);
     }
 }
