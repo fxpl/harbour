@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.io.IOException;
@@ -16,6 +17,7 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import static java.util.Map.entry;
+
 enum Type {
     MULTI("multi"),
     SINGLE("single");
@@ -47,7 +49,6 @@ public class Boot {
     }
 
     static Type parseType(String str) {
-        System.out.println(str);
         if (str.equals(Type.MULTI.toString())) {
             return Type.MULTI;
         } else if (str.equals(Type.SINGLE.toString())) {
@@ -97,8 +98,13 @@ public class Boot {
             .setDefault(false)
             .action(Arguments.storeTrue())
             .help("Dry run");
+        // Override YCSB parameters
         parser.addArgument("--operationcount")
             .help("Override operationcount");
+        parser.addArgument("--warmup.operationcount")
+            .help("Override warmup.operationcount");
+        parser.addArgument("--warmup.iterations")
+            .help("Override warmup.iterations");
         parser.addArgument("--target")
             .help("Override target");
 
@@ -165,10 +171,13 @@ public class Boot {
         YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p", "hdrhistogram.output.path="+logFull+".hdr");
         String YCSB_JAVA_OPTS = String.join(" ", ycsb_gc_options, "-Xms"+ycsb_gc_heap, "-Xmx"+ycsb_gc_heap, ycsb_gc_log_str, ycsb_vm_options);
 
-        if (ns.getString("operationcount") != null) {
-            YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p operationcount=" + ns.getString("operationcount"));
+        for (String argOverride : Arrays.asList("operationcount", "warmup.operationcount", "warmup.iterations")) {
+            if (ns.getString(argOverride) != null) {
+                YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p " + argOverride+ "=" + ns.getString(argOverride));
+            }
         }
 
+        // If target exists it must be last!
         if (ycsb_target != null) {
             YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p", "measurement.interval=both", "-target", ycsb_target);
         } else {
