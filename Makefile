@@ -24,7 +24,9 @@ zip: compile
 	cp -r lib dist/harbour-0.0.1
 	cp -r configs dist/harbour-0.0.1
 	cp -r boot.sh dist/harbour-0.0.1
-	cp -r bundles/apache-cassandra-5.0.1 dist/harbour-0.0.1
-	cp -r bundles/ycsb-0.17.0 dist/harbour-0.0.1
-	zip -r dist/harbour.zip dist/harbour-0.0.1
+	mkdir -p dist/harbour-0.0.1/bundles
+	cp -r bundles/apache-cassandra-5.0.1 dist/harbour-0.0.1/bundles
+	cp -r bundles/ycsb-0.17.0 dist/harbour-0.0.1/bundles
+	bash -c 'cd dist && pwd && zip -qq -r harbour.zip harbour-0.0.1/'
+	rm -rf dist/harbour-0.0.1
 

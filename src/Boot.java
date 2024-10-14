@@ -199,10 +199,12 @@ public class Boot {
         final boolean needs_init = !Files.isDirectory(Paths.get("./" + dbName));
         if (needs_init) {
             System.out.println("Looks like this is the first time you run this workload");
+            System.out.println(dbName + " does not exists, creating can take a while...");
             String prev_ycsb_args = environment.get("YCSB_ARGS");
-            // String ycsb_args_no_target = prev_ycsb_args.substring(0, prev_ycsb_args.indexOf("-target"));
-            // System.out.println(dbName + " does not exists, creating can take a while...");
-            // environment.put("YCSB_ARGS", ycsb_args_no_target);
+            if (prev_ycsb_args.contains("-target")) {
+                String ycsb_args_no_target = prev_ycsb_args.substring(0, prev_ycsb_args.indexOf("-target"));
+                environment.put("YCSB_ARGS", ycsb_args_no_target);
+            }
             invoke("mkdir -p db", null);
             System.out.println("Creating the prepopulated db...");
             String redirect = ns.getBoolean("debug") ? "" : "&> /dev/null";
