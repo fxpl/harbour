@@ -18,4 +18,13 @@ run_single_debug: compile
 zip: compile
 	rm -rf dist
 	mkdir -p dist
-	zip -r dist/harbour.zip src classes lib configs boot.sh bundles/apache-cassandra-5.0.1 bundles/ycsb-0.17.0
+	mkdir -p dist/harbour-0.0.1
+	cp -r src dist/harbour-0.0.1
+	cp -r classes dist/harbour-0.0.1
+	cp -r lib dist/harbour-0.0.1
+	cp -r configs dist/harbour-0.0.1
+	cp -r boot.sh dist/harbour-0.0.1
+	cp -r bundles/apache-cassandra-5.0.1 dist/harbour-0.0.1
+	cp -r bundles/ycsb-0.17.0 dist/harbour-0.0.1
+	zip -r dist/harbour.zip dist/harbour-0.0.1
+
