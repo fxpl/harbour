@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.io.IOException;
 import org.yaml.snakeyaml.Yaml;
@@ -99,14 +100,12 @@ public class Boot {
             .action(Arguments.storeTrue())
             .help("Dry run");
         // Override YCSB parameters
-        parser.addArgument("--operationcount")
-            .help("Override operationcount");
-        parser.addArgument("--warmup.operationcount")
-            .help("Override warmup.operationcount");
-        parser.addArgument("--warmup.iterations")
-            .help("Override warmup.iterations");
-        parser.addArgument("--target")
-            .help("Override target");
+        List<String> overrideParams = Arrays.asList("operationcount", "warmup.operationcount", "warmup.iterations", "warmup.gc");
+        for (String argOverride : overrideParams) {
+            parser.addArgument("--"+argOverride)
+                .help("Override " + argOverride);
+
+        }
 
         Namespace ns = null;
         try {
@@ -137,25 +136,20 @@ public class Boot {
         String ycsb_vm_options = config.get("ycsb_vm_options");
 
         Map<String, String> workload = getMap(ns.getString("workload"), "workload");
-        String ycsb_workload_path = workload.get("ycsb_workload_path");
-        String ycsb_workload = workload.get("ycsb_workload");
-        String ycsb_target = ns.getString("target") != null ? ns.getString("target") : workload.get("ycsb_target");
-        String ycsb_threads = workload.get("ycsb_threads");
-        String ycsb_hosts = workload.get("ycsb_hosts");
-        String ycsb_cassandra_username = workload.get("ycsb_cassandra_username");
-        String ycsb_cassandra_password = workload.get("ycsb_cassandra_password");
+        String target = ns.getString("target") != null ? ns.getString("target") : workload.get("target");
+        String threads = workload.get("threads");
 
         String YCSB_BASE_INVOKE = String.join(" ", wrapper, "./bundles/ycsb-0.17.0/bin/ycsb.sh");
-        String YCSB_ARGS = String.join(" ", "-s", "-P", String.join("", ycsb_workload_path, ycsb_workload), "-threads", ycsb_threads, "-p", String.join("", "cassandra.username=", ycsb_cassandra_username), "-p", String.join("", "cassandra.password=", ycsb_cassandra_password), "-p", String.join("", "hosts=", ycsb_hosts));
+        String YCSB_ARGS = String.join(" ", "-s", "-P", String.join("", workload.get("workload_path"), workload.get("workloadYCSB")), "-threads", threads, "-p", String.join("", "cassandra.username=", workload.get("cassandra_username")), "-p", String.join("", "cassandra.password=", workload.get("cassandra_password")), "-p", String.join("", "hosts=", workload.get("hosts")));
 
-        // ycsb_target is optional
+        // target is optional
         String logStrTarget = "";
-        if (ycsb_target != null) {
-            logStrTarget = "_target"+ycsb_target;
+        if (target != null) {
+            logStrTarget = "_target"+target;
         }
 
         // Calculate log location
-        final String logPath = "log/"+name+"/"+type+"/"+ycsb_workload+"";
+        final String logPath = "log/"+name+"/"+type+"/"+workload.get("workloadYCSB")+"";
         final String logSubPrefix = "server"+cassandra_gc_short_name+"_"+cassandra_gc_heap+"_client"+ycsb_gc_short_name+"_"+ycsb_gc_heap+logStrTarget+".";
         final String logPrefix = logSubPrefix + getNextI(logPath + "/" + logSubPrefix);
         final String logFull = logPath + "/" + logPrefix;
@@ -171,15 +165,17 @@ public class Boot {
         YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p", "hdrhistogram.output.path="+logFull+".hdr");
         String YCSB_JAVA_OPTS = String.join(" ", ycsb_gc_options, "-Xms"+ycsb_gc_heap, "-Xmx"+ycsb_gc_heap, ycsb_gc_log_str, ycsb_vm_options);
 
-        for (String argOverride : Arrays.asList("operationcount", "warmup.operationcount", "warmup.iterations")) {
+        for (String argOverride : overrideParams) {
             if (ns.getString(argOverride) != null) {
                 YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p " + argOverride+ "=" + ns.getString(argOverride));
+            } else if (workload.get(argOverride) != null) {
+                YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p " + argOverride+ "=" + workload.get(argOverride));
             }
         }
 
         // If target exists it must be last!
-        if (ycsb_target != null) {
-            YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p", "measurement.interval=both", "-target", ycsb_target);
+        if (target != null) {
+            YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p", "measurement.interval=both", "-target", target);
         } else {
             YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p", "measurement.interval=op");
         }
@@ -196,17 +192,17 @@ public class Boot {
             jvm_mitigation, classpath, "Yacht", type == Type.MULTI ? "--multi" : "");
 
         invoke("rm -rf ./db", null);
-        String dbName = "db_"+ycsb_workload;
-
+        String dbName = "db_"+workload.get("workloadYCSB");
+        System.out.println(dbName);
         // Before invoke a real run we should either
         // copy pre_inited db or init on first use
         final boolean needs_init = !Files.isDirectory(Paths.get("./" + dbName));
         if (needs_init) {
             System.out.println("Looks like this is the first time you run this workload");
             String prev_ycsb_args = environment.get("YCSB_ARGS");
-            String ycsb_args_no_target = prev_ycsb_args.substring(0, prev_ycsb_args.indexOf("-target"));
-            System.out.println(dbName + " does not exists, creating can take a while...");
-            environment.put("YCSB_ARGS", ycsb_args_no_target);
+            // String ycsb_args_no_target = prev_ycsb_args.substring(0, prev_ycsb_args.indexOf("-target"));
+            // System.out.println(dbName + " does not exists, creating can take a while...");
+            // environment.put("YCSB_ARGS", ycsb_args_no_target);
             invoke("mkdir -p db", null);
             System.out.println("Creating the prepopulated db...");
             String redirect = ns.getBoolean("debug") ? "" : "&> /dev/null";
