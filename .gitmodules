@@ -4,3 +4,6 @@
 [submodule "bundles/ycsb-src"]
         path = bundles/ycsb-src
         url = git@github.com:JonasNorlinder/ycsb-src.git
+[submodule "bundles/HdrHistogram"]
+	path = bundles/HdrHistogram
+	url = git@github.com:HdrHistogram/HdrHistogram.git
