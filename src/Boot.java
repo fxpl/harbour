@@ -99,6 +99,8 @@ public class Boot {
             .setDefault(false)
             .action(Arguments.storeTrue())
             .help("Dry run");
+        parser.addArgument("--threads")
+            .help("Override YCSB threads");
         // Override YCSB parameters
         List<String> overrideParams = Arrays.asList("operationcount", "warmup.operationcount", "warmup.iterations", "warmup.gc");
         for (String argOverride : overrideParams) {
@@ -137,7 +139,7 @@ public class Boot {
 
         Map<String, String> workload = getMap(ns.getString("workload"), "workload");
         String target = ns.getString("target") != null ? ns.getString("target") : workload.get("target");
-        String threads = workload.get("threads");
+        String threads = ns.getString("threads") != null ? ns.getString("threads") : workload.get("threads");
 
         String YCSB_BASE_INVOKE = String.join(" ", wrapper, "./bundles/ycsb-0.17.0/bin/ycsb.sh");
         String YCSB_ARGS = String.join(" ", "-s", "-P", String.join("", workload.get("workload_path"), workload.get("workloadYCSB")), "-threads", threads, "-p", String.join("", "cassandra.username=", workload.get("cassandra_username")), "-p", String.join("", "cassandra.password=", workload.get("cassandra_password")), "-p", String.join("", "hosts=", workload.get("hosts")));
