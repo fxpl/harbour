@@ -1,0 +1,6 @@
+[submodule "bundles/HdrLogProcessing"]
+	path = bundles/HdrLogProcessing
+	url = git@github.com:JonasNorlinder/HdrLogProcessing.git
+[submodule "bundles/ycsb-src"]
+        path = bundles/ycsb-src
+        url = git@github.com:JonasNorlinder/ycsb-src.git
