@@ -3,8 +3,8 @@ harbour:
   type: single
   cassandra_jdk_path: /home/jonas/.sdkman/candidates/java/21-open
   wrapper: /usr/bin/time --verbose
-  cassandra_gc_short_name: ZGC
-  cassandra_gc_options: -XX:+UseZGC
+  cassandra_gc_short_name: G1
+  cassandra_gc_options: -XX:+UseG1GC
   cassandra_gc_log_level: gc
   cassandra_gc_heap: '32g'
   cassandra_vm_options: -XX:+UseThreadPriorities -Xss256k -XX:+AlwaysPreTouch -XX:+UseTLAB -XX:+ResizeTLAB -XX:-UseNUMA -XX:+PerfDisableSharedMem -Djdk.attach.allowAttachSelf=true -javaagent:./bundles/apache-cassandra-5.0.1/lib/jamm-0.4.0.jar -Djava.library.path=./classes:./bundles/apache-cassandra-5.0.1/lib/sigar-bin -XX:CompileCommandFile=./bundles/apache-cassandra-5.0.1/conf/hotspot_compiler -ea -da:net.openhft... -Djava.net.preferIPv4Stack=true -Dchronicle.analytics.disable=true

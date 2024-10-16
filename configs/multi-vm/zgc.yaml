@@ -5,7 +5,7 @@ harbour:
   ycsb_jdk_path: /home/jonas/.sdkman/candidates/java/21-open
   wrapper: /usr/bin/time --verbose
   cassandra_gc_short_name: ZGC
-  cassandra_gc_options: -XX:+UseZGC
+  cassandra_gc_options: -XX:+UseZGC -XX:+ZGenerational
   cassandra_gc_log_level: gc
   cassandra_gc_heap: '32g'
   ycsb_gc_short_name: G1

@@ -99,6 +99,10 @@ public class Boot {
             .setDefault(false)
             .action(Arguments.storeTrue())
             .help("Dry run");
+        parser.addArgument("--cassandraHeap")
+            .help("Override Cassandra heap");
+        parser.addArgument("--ycsbHeap")
+            .help("Override YCSB heap");
         parser.addArgument("--threads")
             .help("Override YCSB threads");
         // Override YCSB parameters
@@ -106,7 +110,6 @@ public class Boot {
         for (String argOverride : overrideParams) {
             parser.addArgument("--"+argOverride)
                 .help("Override " + argOverride);
-
         }
 
         Namespace ns = null;
@@ -126,7 +129,7 @@ public class Boot {
         String cassandra_gc_short_name = config.get("cassandra_gc_short_name");
         String cassandra_gc_options = config.get("cassandra_gc_options");
         String cassandra_gc_log_level = config.get("cassandra_gc_log_level");
-        String cassandra_gc_heap = config.get("cassandra_gc_heap");
+        String cassandra_gc_heap = ns.getString("cassandraHeap") != null ? ns.getString("cassandraHeap") : config.get("cassandra_gc_heap");
         String cassandra_vm_options = config.get("cassandra_vm_options");
         String jvm_mitigation = config.get("jvm_mitigation");
 
@@ -134,7 +137,7 @@ public class Boot {
         String ycsb_gc_short_name = config.get("ycsb_gc_short_name");
         String ycsb_gc_options = config.get("ycsb_gc_options");
         String ycsb_gc_log_level = config.get("ycsb_gc_log_level");
-        String ycsb_gc_heap = config.get("ycsb_gc_heap");
+        String ycsb_gc_heap = ns.getString("ycsbHeap") != null ? ns.getString("ycsbHeap") : config.get("ycsb_gc_heap");
         String ycsb_vm_options = config.get("ycsb_vm_options");
 
         Map<String, String> workload = getMap(ns.getString("workload"), "workload");
@@ -190,7 +193,7 @@ public class Boot {
         ));
 
         String yachtInvoke = String.join(" ", wrapper, cassandra_java,
-            cassandra_gc_options, cassandra_gc_log_str, cassandra_vm_options,
+            cassandra_gc_options, "-Xms"+cassandra_gc_heap, "-Xmx"+cassandra_gc_heap, cassandra_gc_log_str, cassandra_vm_options,
             jvm_mitigation, classpath, "Yacht", type == Type.MULTI ? "--multi" : "");
 
         invoke("rm -rf ./db", null);
