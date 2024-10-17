@@ -2,7 +2,7 @@ harbour:
   name: OpenJDK-21
   type: single
   cassandra_jdk_path: /home/jonas/.sdkman/candidates/java/21-open
-  wrapper: /usr/bin/time --verbose
+  cassandra_wrapper: /usr/bin/time --verbose
   cassandra_gc_short_name: G1
   cassandra_gc_options: -XX:+UseG1GC
   cassandra_gc_log_level: gc

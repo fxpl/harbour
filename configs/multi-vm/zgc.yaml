@@ -3,11 +3,12 @@ harbour:
   type: multi
   cassandra_jdk_path: /home/jonas/.sdkman/candidates/java/21-open
   ycsb_jdk_path: /home/jonas/.sdkman/candidates/java/21-open
-  wrapper: /usr/bin/time --verbose
+  cassandra_wrapper: /usr/bin/time --verbose
   cassandra_gc_short_name: ZGC
   cassandra_gc_options: -XX:+UseZGC -XX:+ZGenerational
   cassandra_gc_log_level: gc
   cassandra_gc_heap: '32G'
+  ycsb_wrapper: /usr/bin/time --verbose
   ycsb_gc_short_name: G1
   ycsb_gc_options: -XX:+UseG1GC
   ycsb_gc_log_level: gc

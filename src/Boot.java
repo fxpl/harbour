@@ -141,7 +141,7 @@ public class Boot {
         parser.addArgument("--threads")
             .help("Override YCSB threads");
         // Override YCSB parameters
-        List<String> overrideParams = Arrays.asList("operationcount", "warmup.operationcount", "warmup.iterations", "warmup.gc");
+        List<String> overrideParams = Arrays.asList("operationcount", "warmup.operationcount", "warmup.iterations", "warmup.gc", "warmup.ignore");
         for (String argOverride : overrideParams) {
             parser.addArgument("--"+argOverride)
                 .help("Override " + argOverride);
@@ -159,7 +159,7 @@ public class Boot {
         Map<String, String> config = getMap(ns.getString("config"), "harbour");
         Type type = parseType(config.get("type"));
         String name = config.get("name");
-        String wrapper = config.getOrDefault("wrapper", "");
+        String cassandra_wrapper = config.getOrDefault("cassandra_wrapper", "");
         String cassandra_java = config.get("cassandra_jdk_path") + "/bin/java";
         String cassandra_gc_short_name = config.get("cassandra_gc_short_name");
         String cassandra_gc_options = config.get("cassandra_gc_options");
@@ -168,6 +168,7 @@ public class Boot {
         String cassandra_vm_options = config.get("cassandra_vm_options");
         String jvm_mitigation = config.get("jvm_mitigation");
 
+        String ycsb_wrapper = config.getOrDefault("ycsb_wrapper", "");
         String ycsb_java = config.get("cassandra_jdk_path");
         String ycsb_gc_short_name = config.get("ycsb_gc_short_name");
         String ycsb_gc_options = config.get("ycsb_gc_options");
@@ -189,7 +190,7 @@ public class Boot {
             throw new RuntimeException("Invalid latencyMeasure");
         }
 
-        String YCSB_BASE_INVOKE = String.join(" ", wrapper, "./bundles/ycsb-0.17.0/bin/ycsb.sh");
+        String YCSB_BASE_INVOKE = String.join(" ", ycsb_wrapper, "./bundles/ycsb-0.17.0/bin/ycsb.sh");
         String YCSB_ARGS = String.join(" ",
             "-s", "-P", workload.get("workload_path")+workload.get("workloadYCSB"),
             "-threads", threads, "-p", "cassandra.username="+workload.get("cassandra_username"),
@@ -218,7 +219,7 @@ public class Boot {
         String cassandra_gc_log_str = cassandra_gc_log_level != null ? "-Xlog:"+cassandra_gc_log_level+":file=" + logFull + ".server.gc::filesize=0" : "";
         String ycsb_gc_log_str = ycsb_gc_log_level != null ? "-Xlog:"+ycsb_gc_log_level+":file=" + logFull + ".client.gc::filesize=0" : "";
 
-        YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p", "hdrhistogram.output.path="+logFull+".hdr");
+        YCSB_ARGS = String.join(" ", YCSB_ARGS, "-p", "hdrhistogram.output.path="+logFull);
         String YCSB_JAVA_OPTS = String.join(" ", ycsb_gc_options, "-Xms"+ycsb_gc_heap, "-Xmx"+ycsb_gc_heap, ycsb_gc_log_str, ycsb_vm_options);
 
         for (String argOverride : overrideParams) {
@@ -243,7 +244,7 @@ public class Boot {
             entry("YCSB_ARGS", YCSB_ARGS)
         ));
 
-        String yachtInvoke = String.join(" ", wrapper, cassandra_java,
+        String yachtInvoke = String.join(" ", cassandra_wrapper, cassandra_java,
             cassandra_gc_options, "-Xms"+cassandra_gc_heap, "-Xmx"+cassandra_gc_heap, cassandra_gc_log_str, cassandra_vm_options,
             jvm_mitigation, classpath, "Yacht", type == Type.MULTI ? "--multi" : "");
 

@@ -4,8 +4,8 @@ harbour:
   cassandra_jdk_path: /home/jonas/.sdkman/candidates/java/21-open
   ycsb_jdk_path: /home/jonas/.sdkman/candidates/java/21-open
   cassandra_wrapper: /usr/bin/time --verbose
-  cassandra_gc_short_name: G1
-  cassandra_gc_options: -XX:+UseG1GC
+  cassandra_gc_short_name: Parallel
+  cassandra_gc_options: -XX:+UseParallelGC
   cassandra_gc_log_level: gc
   cassandra_gc_heap: '32G'
   ycsb_wrapper: /usr/bin/time --verbose
