@@ -96,6 +96,23 @@ public class Boot {
         throw new RuntimeException("Could not determine i");
     }
 
+    static public String ensureValidHeapString(String str) {
+        if (str.length() < 2) {
+            throw new RuntimeException("Invalid heap");
+        }
+        String numeric = str.substring(0, str.length()-1);
+        try {
+            Long.parseUnsignedLong(numeric);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Invalid heap");
+        }
+        char lastChar = Character.toUpperCase(str.charAt(str.length()-1));
+        if (lastChar == 'K' || lastChar == 'M' || lastChar == 'G') {
+            return numeric+lastChar;
+        }
+        throw new RuntimeException("Invalid heap");
+    }
+
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("Boot").build()
             .defaultHelp(true)
@@ -147,7 +164,7 @@ public class Boot {
         String cassandra_gc_short_name = config.get("cassandra_gc_short_name");
         String cassandra_gc_options = config.get("cassandra_gc_options");
         String cassandra_gc_log_level = config.get("cassandra_gc_log_level");
-        String cassandra_gc_heap = ns.getString("cassandraHeap") != null ? ns.getString("cassandraHeap") : config.get("cassandra_gc_heap");
+        String cassandra_gc_heap = ensureValidHeapString(ns.getString("cassandraHeap") != null ? ns.getString("cassandraHeap") : config.get("cassandra_gc_heap"));
         String cassandra_vm_options = config.get("cassandra_vm_options");
         String jvm_mitigation = config.get("jvm_mitigation");
 
@@ -155,7 +172,7 @@ public class Boot {
         String ycsb_gc_short_name = config.get("ycsb_gc_short_name");
         String ycsb_gc_options = config.get("ycsb_gc_options");
         String ycsb_gc_log_level = config.get("ycsb_gc_log_level");
-        String ycsb_gc_heap = ns.getString("ycsbHeap") != null ? ns.getString("ycsbHeap") : config.get("ycsb_gc_heap");
+        String ycsb_gc_heap = ensureValidHeapString(ns.getString("ycsbHeap") != null ? ns.getString("ycsbHeap") : config.get("ycsb_gc_heap"));
         String ycsb_vm_options = config.get("ycsb_vm_options");
 
         Map<String, String> workload = getMap(ns.getString("workload"), "workload");
