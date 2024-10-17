@@ -34,6 +34,21 @@ enum Type {
     }
 }
 
+enum LatencyMeasure {
+    SEPARATE("separate"),
+    ALL("all");
+    private final String val;
+
+    private LatencyMeasure(String val) {
+        this.val = val;
+    }
+
+    @Override
+    public String toString() {
+        return this.val;
+    }
+}
+
 public class Boot {
     final static private Yaml yaml = new Yaml();
     static private boolean dry = false;
@@ -88,6 +103,9 @@ public class Boot {
         parser.addArgument("--config")
             .required(true)
             .help("System configuration");
+        parser.addArgument("--latencyMeasure")
+            .required(false)
+            .help("All operations in one metric or separate");
         parser.addArgument("--workload")
             .required(true)
             .help("Workload to run");
@@ -144,8 +162,24 @@ public class Boot {
         String target = ns.getString("target") != null ? ns.getString("target") : workload.get("target");
         String threads = ns.getString("threads") != null ? ns.getString("threads") : workload.get("threads");
 
+        String latencyMeasureString = ns.getString("latencyMeasure") != null ? ns.getString("latencyMeasure") : workload.getOrDefault("latencyMeasure", LatencyMeasure.ALL.toString());
+        LatencyMeasure latencyMeasure = null;
+        if (latencyMeasureString.equals(LatencyMeasure.SEPARATE.toString())) {
+            latencyMeasure = LatencyMeasure.SEPARATE;
+        } else if (latencyMeasureString.equals(LatencyMeasure.ALL.toString())) {
+            latencyMeasure = LatencyMeasure.ALL;
+        } else {
+            throw new RuntimeException("Invalid latencyMeasure");
+        }
+
         String YCSB_BASE_INVOKE = String.join(" ", wrapper, "./bundles/ycsb-0.17.0/bin/ycsb.sh");
-        String YCSB_ARGS = String.join(" ", "-s", "-P", String.join("", workload.get("workload_path"), workload.get("workloadYCSB")), "-threads", threads, "-p", String.join("", "cassandra.username=", workload.get("cassandra_username")), "-p", String.join("", "cassandra.password=", workload.get("cassandra_password")), "-p", String.join("", "hosts=", workload.get("hosts")));
+        String YCSB_ARGS = String.join(" ",
+            "-s", "-P", workload.get("workload_path")+workload.get("workloadYCSB"),
+            "-threads", threads, "-p", "cassandra.username="+workload.get("cassandra_username"),
+            "-p", "cassandra.password="+workload.get("cassandra_password"),
+            "-p", "hosts="+workload.get("hosts"),
+            "-p", "latencyMeasure="+latencyMeasure.toString()
+            );
 
         // target is optional
         String logStrTarget = "";

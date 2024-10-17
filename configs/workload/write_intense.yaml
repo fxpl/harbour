@@ -1,7 +1,7 @@
 workload:
   workload_path: ./configs/workload/ycsb/
   workloadYCSB: workload_writeintense
-  target: '12000'
+  target: '120000'
   threads: '32'
   hosts: '127.0.0.1'
   cassandra_username: cassandra
