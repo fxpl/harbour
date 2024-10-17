@@ -15,8 +15,11 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Paths;
+import java.nio.file.Files;
 import java.util.*;
 import java.io.InputStream;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 
 import static java.util.Map.entry;
 
@@ -100,6 +103,12 @@ public class Yacht {
             .action(net.sourceforge.argparse4j.impl.Arguments.storeTrue())
             .help("Run multi-JVM");
 
+        List<String> overrideParamsCassandra = Arrays.asList("concurrent_writes", "concurrent_counter_writes", "concurrent_materialized_view_writes", "concurrent_compactors");
+        for (String argOverride : overrideParamsCassandra) {
+            parser.addArgument("--"+argOverride)
+                .help("");
+        }
+
         Namespace ns = null;
         try {
             ns = parser.parseArgs(args);
@@ -108,15 +117,31 @@ public class Yacht {
             System.exit(1);
         }
         Yacht yacht = new Yacht();
+        Files.copy(Paths.get(yacht.dirCassandraConf.toString(), "cassandra.yaml.template"), Paths.get(yacht.dirCassandraConf.toString(), "cassandra.yaml"), StandardCopyOption.REPLACE_EXISTING);
+
+        for (String argOverride : overrideParamsCassandra) {
+            if (ns.getString(argOverride) == null) continue;
+            Files.writeString(
+                Paths.get(yacht.dirCassandraConf.toString(), "cassandra.yaml"),
+                argOverride + ": "+ ns.getString(argOverride) + System.lineSeparator(),
+                StandardOpenOption.APPEND
+            );
+        }
 
         Class<?> EmbeddedCassandraServiceClass = Class.forName(
-                "org.apache.cassandra.service.EmbeddedCassandraService",
-                true,
-                loader
+            "org.apache.cassandra.service.EmbeddedCassandraService",
+            true,
+            loader
         );
 
         Object res = EmbeddedCassandraServiceClass.getMethod("start")
           .invoke(EmbeddedCassandraServiceClass.getConstructor().newInstance());
+
+        System.err.println("Using Cassandra configuration with:");
+        Class<?> DatabaseDescriptor = Class.forName("org.apache.cassandra.config.DatabaseDescriptor", true, loader);
+        for (String str : Arrays.asList("getConcurrentReaders", "getConcurrentCounterWriters", "getConcurrentWriters", "getConcurrentViewWriters", "getConcurrentCompactors")) {
+            System.err.println(str+ ": " + (Integer)DatabaseDescriptor.getMethod(str).invoke(null));
+        }
 
         System.out.println("Cassandra service started.");
         yacht.prepareYCSBArgs();

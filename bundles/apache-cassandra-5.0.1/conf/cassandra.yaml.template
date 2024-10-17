@@ -662,25 +662,6 @@ seed_provider:
       # based on the configured name service on the system. Defaults to "false".
       #  resolve_multiple_ip_addresses_per_dns_record: "false"
 
-# For workloads with more data than can fit in memory, Cassandra's
-# bottleneck will be reads that need to fetch data from
-# disk. "concurrent_reads" should be set to (16 * number_of_drives) in
-# order to allow the operations to enqueue low enough in the stack
-# that the OS and drives can reorder them. Same applies to
-# "concurrent_counter_writes", since counter writes read the current
-# values before incrementing and writing them back.
-#
-# On the other hand, since writes are almost never IO bound, the ideal
-# number of "concurrent_writes" is dependent on the number of cores in
-# your system; (8 * number_of_cores) is a good rule of thumb.
-concurrent_reads: 32
-concurrent_writes: 32
-concurrent_counter_writes: 32
-
-# For materialized view writes, as there is a read involved, so this should
-# be limited by the less of concurrent reads or concurrent writes.
-concurrent_materialized_view_writes: 32
-
 # Maximum memory to use for inter-node and client-server networking buffers.
 #
 # Defaults to the smaller of 1/16 of heap or 128MB. This pool is allocated off-heap,
@@ -1162,23 +1143,6 @@ column_index_cache_size: 2KiB
 #   parameters:
 #     min_threshold: 4
 #     max_threshold: 32
-
-
-# Number of simultaneous compactions to allow, NOT including
-# validation "compactions" for anti-entropy repair.  Simultaneous
-# compactions can help preserve read performance in a mixed read/write
-# workload, by mitigating the tendency of small sstables to accumulate
-# during a single long running compactions. The default is usually
-# fine and if you experience problems with compaction running too
-# slowly or too fast, you should look at
-# compaction_throughput first.
-#
-# concurrent_compactors defaults to the smaller of (number of disks,
-# number of cores), with a minimum of 2 and a maximum of 8.
-#
-# If your data directories are backed by SSD, you should increase this
-# to the number of cores.
-# concurrent_compactors: 1
 
 # Number of simultaneous repair validations to allow. If not set or set to
 # a value less than 1, it defaults to the value of concurrent_compactors.
@@ -2227,3 +2191,38 @@ drop_compact_storage_enabled: false
 #   compatibility mode would no longer toggle behaviors as when it was running in the UPGRADING mode.
 #
 storage_compatibility_mode: CASSANDRA_4
+
+# For workloads with more data than can fit in memory, Cassandra's
+# bottleneck will be reads that need to fetch data from
+# disk. "concurrent_reads" should be set to (16 * number_of_drives) in
+# order to allow the operations to enqueue low enough in the stack
+# that the OS and drives can reorder them. Same applies to
+# "concurrent_counter_writes", since counter writes read the current
+# values before incrementing and writing them back.
+#
+# On the other hand, since writes are almost never IO bound, the ideal
+# number of "concurrent_writes" is dependent on the number of cores in
+# your system; (8 * number_of_cores) is a good rule of thumb.
+# concurrent_reads: 32
+# concurrent_writes: 32
+# concurrent_counter_writes: 32
+
+# For materialized view writes, as there is a read involved, so this should
+# be limited by the less of concurrent reads or concurrent writes.
+# concurrent_materialized_view_writes: 32
+
+# Number of simultaneous compactions to allow, NOT including
+# validation "compactions" for anti-entropy repair.  Simultaneous
+# compactions can help preserve read performance in a mixed read/write
+# workload, by mitigating the tendency of small sstables to accumulate
+# during a single long running compactions. The default is usually
+# fine and if you experience problems with compaction running too
+# slowly or too fast, you should look at
+# compaction_throughput first.
+#
+# concurrent_compactors defaults to the smaller of (number of disks,
+# number of cores), with a minimum of 2 and a maximum of 8.
+#
+# If your data directories are backed by SSD, you should increase this
+# to the number of cores.
+# concurrent_compactors: 2

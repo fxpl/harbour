@@ -140,6 +140,13 @@ public class Boot {
             .help("Override YCSB heap");
         parser.addArgument("--threads")
             .help("Override YCSB threads");
+
+        List<String> overrideParamsCassandra = Arrays.asList("concurrent_writes", "concurrent_counter_writes", "concurrent_materialized_view_writes", "concurrent_compactors");
+        for (String argOverride : overrideParamsCassandra) {
+            parser.addArgument("--"+argOverride)
+                .help("Override" + argOverride);
+        }
+
         // Override YCSB parameters
         List<String> overrideParams = Arrays.asList("operationcount", "warmup.operationcount", "warmup.iterations", "warmup.gc", "warmup.ignore");
         for (String argOverride : overrideParams) {
@@ -247,6 +254,13 @@ public class Boot {
         String yachtInvoke = String.join(" ", cassandra_wrapper, cassandra_java,
             cassandra_gc_options, "-Xms"+cassandra_gc_heap, "-Xmx"+cassandra_gc_heap, cassandra_gc_log_str, cassandra_vm_options,
             jvm_mitigation, classpath, "Yacht", type == Type.MULTI ? "--multi" : "");
+        for (String argOverride : overrideParamsCassandra) {
+            if (ns.getString(argOverride) != null) {
+                yachtInvoke = String.join(" ", yachtInvoke, "--"+argOverride+"="+ns.getString(argOverride));
+            } else if (workload.get(argOverride) != null) {
+                yachtInvoke = String.join(" ", yachtInvoke, "--"+argOverride+"="+workload.get(argOverride));
+            }
+        }
 
         invoke("rm -rf ./db", null);
         String dbName = "db_"+workload.get("workloadYCSB");
@@ -264,8 +278,7 @@ public class Boot {
             }
             invoke("mkdir -p db", null);
             System.out.println("Creating the prepopulated db...");
-            String redirect = ns.getBoolean("debug") ? "" : "&> /dev/null";
-            invoke(yachtInvoke + " --init " + redirect, environment);
+            invoke(yachtInvoke + " --init ", environment);
             environment.put("YCSB_ARGS", prev_ycsb_args);
 
             System.out.println("Caching db for future runs");
