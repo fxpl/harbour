@@ -232,7 +232,9 @@ public class Boot {
 
         // Calculate log location
         final String logPath = "log/"+name+"/"+type+"/"+workload.get("workloadYCSB")+"";
-        final String logSubPrefix = "server"+cassandra_gc_short_name+"_"+cassandra_gc_heap+"_client"+ycsb_gc_short_name+"_"+ycsb_gc_heap+logStrTarget+".";
+        final String concurrentWrites = ns.getString("concurrent_writes") != null ? "_concurrentWrites" + ns.getString("concurrent_writes") : "";
+        final String concurrentCounterWrites = ns.getString("concurrent_counter_writes") != null ? "_concurrentCounterWrites" + ns.getString("concurrent_counter_writes") : "";
+        final String logSubPrefix = "server"+cassandra_gc_short_name+"_"+cassandra_gc_heap+"_client"+ycsb_gc_short_name+"_"+ycsb_gc_heap+logStrTarget+concurrentWrites+concurrentCounterWrites+".";
         final String logPrefix = logSubPrefix + getNextI(logPath + "/" + logSubPrefix);
         final String logFull = logPath + "/" + logPrefix;
         try {
