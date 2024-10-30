@@ -1,4 +1,6 @@
-/* Parts of this code for loading Cassandra/YCSB
+/* Copyright (c) 2024 Uppsala University
+ *
+ * Parts of this code for loading Cassandra/YCSB
  * comes from DaCapo whose license requires
  * copyright and license notices to be presereved.
  *

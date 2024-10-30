@@ -1,3 +1,5 @@
+/* Copyright (c) 2024 Uppsala University
+ */
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -8,6 +10,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.io.IOException;
 import org.yaml.snakeyaml.Yaml;
@@ -50,6 +53,8 @@ enum LatencyMeasure {
 }
 
 public class Boot {
+    private static List<Process> processes = new ArrayList<>();
+
     final static private Yaml yaml = new Yaml();
     static private boolean dry = false;
     final static private String classpath = "-cp classes:lib/argparse4j-0.9.0.jar";
@@ -80,7 +85,8 @@ public class Boot {
             Map<String, String> processEnvironment = processBuilder.environment();
             if (environment != null) environment.forEach(processEnvironment::put);
             processBuilder.inheritIO();
-            processBuilder.start().waitFor();
+            Process process = processBuilder.start();
+            processes.add(process);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -140,6 +146,18 @@ public class Boot {
             .help("Override YCSB heap");
         parser.addArgument("--threads")
             .help("Override YCSB threads");
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutdown hook triggered. Terminating child processes...");
+            processes.forEach(Process::destroy);
+            for (Process process : processes) {
+                try {
+                    process.waitFor();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }));
 
         List<String> overrideParamsCassandra = Arrays.asList("concurrent_writes", "concurrent_counter_writes", "concurrent_materialized_view_writes", "concurrent_compactors");
         for (String argOverride : overrideParamsCassandra) {

@@ -18,9 +18,9 @@ pd.set_option('display.max_rows', None)
 
 plt.rcParams.update({'axes.labelsize': 14, 'axes.titlesize': 16, 'legend.fontsize': 14, 'xtick.labelsize': 14, 'ytick.labelsize': 14})
 
+
 # mpl.rcParams['text.usetex'] = True
 # mpl.rcParams['text.latex.preamble'] = '\\usepackage{libertine}'
-
 
 MIN_LATENCY_USEC = 1
 MAX_LATENCY_USEC = 1000 * 1000 * 1000 # 1 sec
@@ -74,7 +74,8 @@ def plot_all(files, file_name):
      #= get_matching_files(get_result_dir(args, gc), args)
     append_to_histograms(files[gc], histograms, gc)
   max_percentile='99.9999'
-
+  # Credits goes to https://github.com/wenyuzhao/lxr-pldi-2022-artifact (license MIT, author Wenyu Zhao)
+  # for how to parse HdrHistogram into plot
   percentile_list = []
   for gc, hists in histograms.items():
     for j, histogram in enumerate(hists):
