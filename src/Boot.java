@@ -87,6 +87,7 @@ public class Boot {
             processBuilder.inheritIO();
             Process process = processBuilder.start();
             processes.add(process);
+            process.waitFor();
         } catch (Exception e) {
             e.printStackTrace();
         }
