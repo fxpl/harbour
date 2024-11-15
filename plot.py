@@ -26,6 +26,12 @@ MIN_LATENCY_USEC = 1
 MAX_LATENCY_USEC = 1000 * 1000 * 1000 # 1 sec
 LATENCY_SIGNIFICANT_DIGITS = 5
 
+# Adapted from test_hdrhistogram.py in HdrHistogram_py:
+# Written by Alec Hothan
+#
+# Licensed under the Apache License, Version 2.0 (the “License”);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 def append_to_histograms(files, histograms, gc):
   histograms[gc] = []
   for file in files:
