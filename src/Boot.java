@@ -1,4 +1,5 @@
 /* Copyright (c) 2024 Uppsala University
+ * Copyright (c) 2024 Oracle and/or its affiliates.
  */
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -95,7 +96,7 @@ public class Boot {
 
     static String getNextI(String logFull) {
         for (int i = 1; i < Integer.MAX_VALUE; i++) {
-            String check = logFull+Integer.toString(i)+".log";
+            String check = logFull+"/"+Integer.toString(i)+".log";
             if (Files.notExists(Paths.get(check))) {
                 return Integer.toString(i);
             }
@@ -104,6 +105,7 @@ public class Boot {
     }
 
     static public String ensureValidHeapString(String str) {
+        if (str == null) return null;
         if (str.length() < 2) {
             throw new RuntimeException("Invalid heap");
         }
@@ -141,12 +143,24 @@ public class Boot {
             .setDefault(false)
             .action(Arguments.storeTrue())
             .help("Dry run");
+        parser.addArgument("--target")
+            .help("Override target");
+        parser.addArgument("--cassandraJDKPath")
+            .required(true)
+            .help("Set Cassandra JDK");
+        parser.addArgument("--ycsbJDKPath")
+            .required(true)
+            .help("Set YCSB JDK");
         parser.addArgument("--cassandraHeap")
-            .help("Override Cassandra heap");
+            .required(true)
+            .help("Set Cassandra heap");
         parser.addArgument("--ycsbHeap")
-            .help("Override YCSB heap");
+            // .required(true)
+            .help("Set YCSB heap");
         parser.addArgument("--threads")
             .help("Override YCSB threads");
+        parser.addArgument("--i")
+            .help("Fixate i (integer) in log name");
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Shutdown hook triggered. Terminating child processes...");
@@ -186,7 +200,7 @@ public class Boot {
         Type type = parseType(config.get("type"));
         String name = config.get("name");
         String cassandra_wrapper = config.getOrDefault("cassandra_wrapper", "");
-        String cassandra_java = config.get("cassandra_jdk_path") + "/bin/java";
+        String cassandra_java = (ns.getString("cassandraJDKPath") != null ? ns.getString("cassandraJDKPath") : config.get("cassandra_jdk_path")) + "/bin/java";
         String cassandra_gc_short_name = config.get("cassandra_gc_short_name");
         String cassandra_gc_options = config.get("cassandra_gc_options");
         String cassandra_gc_log_level = config.get("cassandra_gc_log_level");
@@ -195,7 +209,7 @@ public class Boot {
         String jvm_mitigation = config.get("jvm_mitigation");
 
         String ycsb_wrapper = config.getOrDefault("ycsb_wrapper", "");
-        String ycsb_java = config.get("cassandra_jdk_path");
+        String ycsb_java = ns.getString("ycsbJDKPath") != null ? ns.getString("ycsbJDKPath") : config.get("ycsb_jdk_path");
         String ycsb_gc_short_name = config.get("ycsb_gc_short_name");
         String ycsb_gc_options = config.get("ycsb_gc_options");
         String ycsb_gc_log_level = config.get("ycsb_gc_log_level");
@@ -226,17 +240,22 @@ public class Boot {
             );
 
         // target is optional
-        String logStrTarget = "";
+        String logStrTarget = "0_target";
         if (target != null) {
-            logStrTarget = "_target"+target;
+            logStrTarget = target+"_target";
         }
 
         // Calculate log location
-        final String logPath = "log/"+name+"/"+type+"/"+workload.get("workloadYCSB")+"";
         final String concurrentWrites = ns.getString("concurrent_writes") != null ? "_concurrentWrites" + ns.getString("concurrent_writes") : "";
         final String concurrentCounterWrites = ns.getString("concurrent_counter_writes") != null ? "_concurrentCounterWrites" + ns.getString("concurrent_counter_writes") : "";
-        final String logSubPrefix = "server"+cassandra_gc_short_name+"_"+cassandra_gc_heap+"_client"+ycsb_gc_short_name+"_"+ycsb_gc_heap+logStrTarget+concurrentWrites+concurrentCounterWrites+".";
-        final String logPrefix = logSubPrefix + getNextI(logPath + "/" + logSubPrefix);
+        final String concurrentOverride = concurrentWrites.length() > 0 || concurrentCounterWrites.length() > 0 ? concurrentWrites + concurrentCounterWrites : "default";
+        String gcStr = cassandra_gc_short_name+(type == Type.MULTI ? "_server" : "")+"/"+cassandra_gc_heap;
+        if (type == Type.MULTI) {
+            gcStr = gcStr + "/" + ycsb_gc_short_name + "_client"+"/"+ycsb_gc_heap;
+        }
+        final String logPath = "results/"+name+"/"+type+"/"+workload.get("workloadYCSB")+"/"+concurrentOverride+"/"+gcStr+"/" + logStrTarget;
+        final String i = ns.getString("i") != null ? ns.getString("i") : getNextI(logPath);
+        final String logPrefix = i;
         final String logFull = logPath + "/" + logPrefix;
         try {
             Files.createDirectories(Paths.get(logPath));
