@@ -1,0 +1,11 @@
+workload:
+  workload_path: ./configs/workload/ycsb/
+  workloadYCSB: dacapo_large_mr1
+  # target: '12000'
+  threads: '32'
+  hosts: '127.0.0.1'
+  cassandra_username: cassandra
+  cassandra_password: cassandra
+  warmup.operationcount: 'inherit'
+  warmup.iterations: '0'
+  warmup.gc: 'true'
